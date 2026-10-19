@@ -18,6 +18,15 @@ if not ticker:
     st.stop()
 
 # ================= Safe loaders =================
+def _flat(df: pd.DataFrame) -> pd.DataFrame:
+    """yfinance 새 버전은 종목 1개여도 열이 2단(MultiIndex) → 1단으로 펴기."""
+    if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
+        df = df.copy()
+        df.columns = df.columns.get_level_values(0)
+    if isinstance(df, pd.DataFrame) and "Close" in df.columns:
+        df = df.dropna(subset=["Close"])
+    return df
+
 @st.cache_data(show_spinner=False)
 def dl_price_1y(tk: str) -> pd.DataFrame:
     for i in range(3):
@@ -30,6 +39,7 @@ def dl_price_1y(tk: str) -> pd.DataFrame:
                 progress=False,
                 threads=False,
             )
+            df = _flat(df)
             if isinstance(df, pd.DataFrame) and not df.empty:
                 return df
         except Exception:
@@ -47,7 +57,7 @@ def dl_price_10d_1d(tk: str) -> pd.DataFrame:
             progress=False,
             threads=False,
         )
-        return df if isinstance(df, pd.DataFrame) else pd.DataFrame()
+        return _flat(df) if isinstance(df, pd.DataFrame) else pd.DataFrame()
     except Exception:
         return pd.DataFrame()
 
